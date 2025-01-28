@@ -6,6 +6,62 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+#define THE_T \
+0b\
+0100\
+1110,   \
+0b\
+0000\
+0000
+
+#define THE_SQUARE \
+0b\
+1100\
+1100,   \
+0b\
+0000\
+0000
+
+#define THE_STICK \
+0b\
+1000\
+1000,   \
+0b\
+1000\
+1000
+
+#define THE_L_LEFT \
+0b\
+0100\
+0100,   \
+0b\
+1100\
+0000
+
+#define THE_L_RIGHT \
+0b\
+1000\
+1000,   \
+0b\
+1100\
+0000
+
+#define THE_DOG_LEFT \
+0b\
+1100\
+0110,   \
+0b\
+0000\
+0000
+
+#define THE_DOG_RIGHT \
+0b\
+0110\
+1100,   \
+0b\
+0000\
+0000
+
 typedef uint16_t Row;
 
 struct Board
@@ -25,6 +81,7 @@ struct Piece
     uint8_t x;
     uint8_t y;
     uint8_t rotation;
+    uint8_t data[2];
 };
 
 struct Game
@@ -75,10 +132,15 @@ static void handle_piece(struct Game *game)
 {
     struct Input *input = game->input;
     struct Piece *piece = game->piece;
-    {
-        Row x_offset = (int)(sizeof(Row) * 8) - piece->x - 1;
-        Row row = game->board->rows[piece->y] & ~(1 << x_offset);
-        game->board->rows[piece->y] = row;
+
+    clean: {
+        bool isOdd = true;
+        for (uint8_t y = piece->y; y < (piece->y + 4); y++)
+        {
+            uint8_t mask = piece->data[(y - piece->y) < 2 ? 0 : 1] >> (isOdd ? 4 : 0) & 0x0F;
+            game->board->rows[y] &= ~(mask << (sizeof(Row) * 8) - 1 - piece->x);
+            isOdd = !isOdd;
+        }
     }
 
     piece->y++;
@@ -89,10 +151,14 @@ static void handle_piece(struct Game *game)
         case 0b01: { piece->x++; break; }
     }
 
-    {
-        Row x_offset = (int)(sizeof(Row) * 8) - piece->x - 1;
-        Row row = game->board->rows[piece->y] | (1 << x_offset);
-        game->board->rows[piece->y] = row;
+    render: {
+        bool isOdd = true;
+        for (uint8_t y = piece->y; y < (piece->y + 4); y++)
+        {
+            uint8_t mask = piece->data[(y - piece->y) < 2 ? 0 : 1] >> (isOdd ? 4 : 0) & 0x0F;
+            game->board->rows[y] |= (mask << (sizeof(Row) * 8) - 1 - piece->x);
+            isOdd = !isOdd;
+        }
     }
 
     game->input->direction = 0;
@@ -116,9 +182,10 @@ int main(int argc, char **argv)
     };
 
     struct Piece piece = {
-        .x = 15,
-        .y = 0,
+        .x = 8,
+        .y = 8,
         .rotation = 0,
+        .data = { THE_DOG_RIGHT }
     };
 
     struct Game game = {
