@@ -62,13 +62,12 @@
 0000\
 0000
 
-typedef uint16_t Row;
+#define ROWS 20
+#define COLUMNS 16
 
 struct Board
 {
-    uint8_t x;
-    uint8_t y;
-    Row rows[20];
+    uint16_t rows[ROWS];
 };
 
 struct Input
@@ -95,12 +94,12 @@ static void
 handle_render(struct Game *game)
 {
     system("clear");
-    for (int8_t y = 0; y < game->board->y; y++)
+    for (int8_t y = 0; y < ROWS; y++)
     {
         printf("<!");
-        for (int8_t x = 0; x < game->board->x; x++)
+        for (int8_t x = 0; x < COLUMNS; x++)
         {
-            if (game->board->rows[y] >> x & 0x01)
+            if (game->board->rows[y] >> (COLUMNS - x - 1) & 0x01)
             {
                 printf("▮");
             }
@@ -122,8 +121,8 @@ static void handle_input(struct Game *game)
     {
         switch (c)
         {
-            case 'd': { game->input->direction = 0b10; break; }
-            case 'a': { game->input->direction = 0b01; break; }
+            case 'a': { game->input->direction = 0b10; break; }
+            case 'd': { game->input->direction = 0b01; break; }
         }
     }
 }
@@ -138,7 +137,7 @@ static void handle_piece(struct Game *game)
         for (uint8_t y = piece->y; y < (piece->y + 4); y++)
         {
             uint8_t mask = piece->data[(y - piece->y) < 2 ? 0 : 1] >> (isOdd ? 4 : 0) & 0x0F;
-            game->board->rows[y] &= ~(mask << (sizeof(Row) * 8) - 1 - piece->x);
+            game->board->rows[y] &= ~(mask << (COLUMNS - 1 - piece->x));
             isOdd = !isOdd;
         }
     }
@@ -156,7 +155,7 @@ static void handle_piece(struct Game *game)
         for (uint8_t y = piece->y; y < (piece->y + 4); y++)
         {
             uint8_t mask = piece->data[(y - piece->y) < 2 ? 0 : 1] >> (isOdd ? 4 : 0) & 0x0F;
-            game->board->rows[y] |= (mask << (sizeof(Row) * 8) - 1 - piece->x);
+            game->board->rows[y] |= (mask << (COLUMNS - 1 - piece->x));
             isOdd = !isOdd;
         }
     }
@@ -167,13 +166,11 @@ static void handle_piece(struct Game *game)
 int main(int argc, char **argv)
 {
     struct Board board = {
-        .x = sizeof(Row) * 8,
-        .y = 20,
         .rows = {0},
     };
 
-    board.rows[0] = 0b1000000000000001;
-    board.rows[1] = 0b1000000000000001;
+    board.rows[0] = 0b1110000000000111;
+    board.rows[1] = 0b1100000000000011;
     board.rows[2] = 0b1000000000000001;
     board.rows[3] = 0b1000000000000001;
 
