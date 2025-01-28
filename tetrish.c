@@ -72,7 +72,8 @@ struct Board
 
 struct Input
 {
-    uint8_t direction;
+    uint8_t right;
+    uint8_t left;
 };
 
 struct Piece
@@ -121,8 +122,8 @@ static void handle_input(struct Game *game)
     {
         switch (c)
         {
-            case 'a': { game->input->direction = 0b10; break; }
-            case 'd': { game->input->direction = 0b01; break; }
+            case 'a': { game->input->left--; break; }
+            case 'd': { game->input->right++; break; }
         }
     }
 }
@@ -143,12 +144,7 @@ static void handle_piece(struct Game *game)
     }
 
     piece->y++;
-
-    switch (input->direction)
-    {
-        case 0b10: { piece->x--; break; }
-        case 0b01: { piece->x++; break; }
-    }
+    piece->x += input->right + input->left;
 
     render: {
         bool isOdd = true;
@@ -160,7 +156,8 @@ static void handle_piece(struct Game *game)
         }
     }
 
-    game->input->direction = 0;
+    game->input->right = 0;
+    game->input->left = 0;
 }
 
 int main(int argc, char **argv)
@@ -175,7 +172,8 @@ int main(int argc, char **argv)
     board.rows[3] = 0b1000000000000001;
 
     struct Input input = {
-        .direction = 0,
+        .right = 0,
+        .left = 0,
     };
 
     struct Piece piece = {
