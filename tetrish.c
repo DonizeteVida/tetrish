@@ -74,6 +74,7 @@ struct Input
 {
     uint8_t right;
     uint8_t left;
+    bool rotate;
 };
 
 struct Piece
@@ -124,6 +125,7 @@ static void handle_input(struct Game *game)
         {
             case 'a': { game->input->left--; break; }
             case 'd': { game->input->right++; break; }
+            case 32: { game->input->rotate = true; break; }
         }
     }
 }
@@ -143,6 +145,41 @@ static void handle_piece(struct Game *game)
         }
     }
 
+    rotate: {
+        from: {
+            0b1000;
+            0b0100;
+            0b0010;
+            0b0001;
+        }
+
+        to: {
+            0b0001;
+            0b0010;
+            0b0100;
+            0b1000;
+        }
+
+        if (input->rotate)
+        {
+            uint8_t buffer[2] = { 0 };
+            bool isOdd = true;
+            for (uint8_t y = 0; y < 4; y++)
+            {
+                uint8_t nibble = piece->data[y < 2 ? 0 : 1] >> (isOdd ? 4 : 0) & 0x0F;
+
+                buffer[0] |= ((nibble & 0b1000) >> 3) << (4 + y);
+                buffer[0] |= ((nibble & 0b0100) >> 2) << y;
+                buffer[1] |= ((nibble & 0b0010) >> 1) << (4 + y);
+                buffer[1] |= ((nibble & 0b0001) >> 0) << y;
+
+                isOdd = !isOdd;
+            }
+
+            memcpy(piece->data, buffer, sizeof(buffer));
+        }
+    }
+
     piece->y++;
     piece->x += input->right + input->left;
 
@@ -158,6 +195,7 @@ static void handle_piece(struct Game *game)
 
     game->input->right = 0;
     game->input->left = 0;
+    game->input->rotate = false;
 }
 
 int main(int argc, char **argv)
@@ -174,13 +212,14 @@ int main(int argc, char **argv)
     struct Input input = {
         .right = 0,
         .left = 0,
+        .rotate = false,
     };
 
     struct Piece piece = {
         .x = 8,
         .y = 8,
         .rotation = 0,
-        .data = { THE_DOG_RIGHT }
+        .data = { THE_T },
     };
 
     struct Game game = {
